@@ -24,7 +24,8 @@ The following diagram illustrates the architecture of the SHL Assessment Recomme
 
 A live demo is available at: [[http://localhost:8503](https://recommendationsystem04.streamlit.app/)]
 
-link for endpointapi : [Endpint](https://nj1995-shl-epo.hf.space)
+link for endpointapi : [Endpint]([https://nj1995-shl-epo.hf.space](https://recommendation-system-e7gs.onrender.com
+))
 
 A live demo for Api is available at:  [URLi is available at: [URL_ADDRESS:8000/docs](URL_ADDRESS000/docs](https://nj1995-shl-epo.hf.space/docs)
 
