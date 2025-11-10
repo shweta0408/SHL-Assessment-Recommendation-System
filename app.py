@@ -21,7 +21,7 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 if not OPENROUTER_API_KEY:
     st.warning("⚠️ OPENROUTER_API_KEY not found in environment variables.")
 
-# --- API Endpoint (use your deployed FastAPI backend) ---
+# --- API Endpoint (deployed FastAPI backend) ---
 API_ENDPOINT = "https://recommendation-system-e7gs.onrender.com"
 
 # --- Utility Functions ---
@@ -33,23 +33,27 @@ def get_recommendations_from_api(query, max_results=10):
         response = requests.post(
             f"{API_ENDPOINT}/recommend",
             json={"query": query, "max_results": max_results},
-            timeout=60
+            timeout=180  # ⏳ Allow long responses (Render cold starts)
         )
         if response.status_code == 200:
             return response.json()["recommended_assessments"]
         else:
             st.error(f"API Error: {response.status_code} - {response.text}")
             return []
+    except requests.exceptions.Timeout:
+        st.error(
+            "⏳ Backend took too long to respond (Render cold start). Please try again.")
+        return []
     except Exception as e:
         st.error(f"Error connecting to API: {e}")
         return []
 
 
 def scrape_job_description(url):
-    """Scrape job description from a provided URL"""
+    """Scrape job description text from a provided URL"""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=15)
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, "html.parser")
             paragraphs = soup.find_all("p")
@@ -63,19 +67,20 @@ def scrape_job_description(url):
 def check_api_health():
     """Check if backend API is running"""
     try:
-        response = requests.get(f"{API_ENDPOINT}/health", timeout=10)
+        response = requests.get(f"{API_ENDPOINT}/health", timeout=15)
         return response.status_code == 200
-    except:
+    except Exception:
         return False
 
 
 # --- Streamlit Interface ---
 st.title("🧪 SHL Assessment Recommender")
 st.markdown("""
-This app recommends SHL assessments based on your job description or hiring needs.
-You can enter text or provide a URL for a job description.
+This app recommends SHL assessments based on your job description or hiring needs.  
+You can enter text manually or provide a job description URL.
 """)
 
+# --- Health check before running ---
 if not check_api_health():
     st.error(
         "⚠️ The backend API is not responding. Please check your FastAPI deployment.")
@@ -85,6 +90,7 @@ else:
 
 tab1, tab2 = st.tabs(["Enter Query", "Upload Job Description URL"])
 
+# --- Manual Query Input ---
 with tab1:
     query = st.text_area(
         "Enter your query:",
@@ -114,3 +120,36 @@ with tab1:
                             st.markdown(
                                 f"**Duration:** {assessment['duration']} minutes")
                         st.markdown("---")
+            else:
+                st.warning("No assessments found matching your query.")
+
+# --- Job Description URL Tab ---
+with tab2:
+    url = st.text_input(
+        "Enter job description URL:",
+        placeholder="https://example.com/job-posting"
+    )
+    if st.button("📄 Fetch & Analyze", key="url_button") and url:
+        with st.spinner("Fetching job description..."):
+            job_description = scrape_job_description(url)
+            if not job_description.startswith(("Failed", "Error")):
+                st.text_area("Extracted Job Description",
+                             job_description, height=200)
+                with st.spinner("Finding the best assessments for you..."):
+                    recommendations = get_recommendations_from_api(
+                        job_description)
+                    if recommendations:
+                        st.subheader("📊 Recommended Assessments")
+                        for i, assessment in enumerate(recommendations):
+                            with st.container():
+                                col1, col2 = st.columns([3, 1])
+                                with col1:
+                                    st.markdown(
+                                        f"### {i+1}. [{assessment['description'].split('.')[0]}]({assessment['url']})")
+                                    st.markdown(
+                                        f"**Test Type:** {', '.join(assessment['test_type'])}")
+                                    st.markdown(
+                                        f"**Why it's relevant:** {'.'.join(assessment['description'].split('.')[1:])}")
+                                with col2:
+                                    st.markdown(
+                                        f"**Remote Testing:** {assessment['remote_support']}")
