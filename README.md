@@ -22,7 +22,7 @@ The following diagram illustrates the architecture of the SHL Assessment Recomme
 
 ## Demo 🎥
 
-A live demo is available at: [[http://localhost:8503](https://recommendationsystem04.streamlit.app/)]
+A live demo is available at: [[http://localhost:8503]([https://recommendationsystem04.streamlit.app/](https://shl-assessment-recommendation-system-hk4x.onrender.com)]
 
 link for endpointapi : [Endpint](https://recommendation-system-e7gs.onrender.com)
 
